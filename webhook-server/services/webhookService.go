@@ -20,7 +20,7 @@ func NewWebHookService() interfaces.IWebhookService {
 
 func (ws *webhookService) PaymentSuccessWebhook(payload views.PaymentRequest) {
 	data := views.WebhookResponse{
-		TransactionID: "random_ID",
+		TransactionID: "random_trx_id",
 		Success:       true,
 		UserID:        payload.UserID,
 	}
@@ -36,11 +36,12 @@ func (ws *webhookService) PaymentSuccessWebhook(payload views.PaymentRequest) {
 		log.Println("Error while forming request:", err)
 		return
 	}
-	request.Header.Set("Content-Type", "applicaton/json")
+	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-API-Token", "some_random_token")
 
-	_, err = ws.client.Do(request)
+	res, err := ws.client.Do(request)
 	if err != nil {
 		log.Println("Error making request:", err)
 	}
+	defer res.Body.Close()
 }
