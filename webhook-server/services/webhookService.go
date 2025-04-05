@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/Sahil2k07/Webhooks-Golang/webhook-server/interfaces"
 	"github.com/Sahil2k07/Webhooks-Golang/webhook-server/views"
@@ -39,9 +40,37 @@ func (ws *webhookService) PaymentSuccessWebhook(payload views.PaymentRequest) {
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-API-Token", "some_random_token")
 
-	res, err := ws.client.Do(request)
-	if err != nil {
-		log.Println("Error making request:", err)
+	go ws.sendWebhookCall(request)
+}
+
+func (ws *webhookService) sendWebhookCall(request *http.Request) {
+	retryCount, ticks := 0, 1
+
+	for retryCount < 6 {
+		retryCount++
+
+		res, err := ws.client.Do(request)
+		if err != nil {
+			log.Println("Error making request:", err)
+		} else {
+			defer res.Body.Close()
+		}
+
+		if res.StatusCode == http.StatusOK {
+			break
+		}
+
+		wait := time.Duration(min(20000, 1000*ticks)) * time.Millisecond
+		time.Sleep(wait)
+
+		ticks *= 2
 	}
-	defer res.Body.Close()
+}
+
+func min(val1, val2 int) int {
+	if val1 > val2 {
+		return val2
+	}
+
+	return val1
 }
